@@ -1,0 +1,606 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  cashier
+  waiter
+  kitchen
+  driver
+}
+
+enum OrderType {
+  dine_in
+  takeout
+  delivery
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  served
+  completed
+  cancelled
+}
+
+enum OrderItemStatus {
+  pending
+  preparing
+  ready
+  served
+  voided
+}
+
+enum TableStatus {
+  available
+  occupied
+  reserved
+  cleaning
+}
+
+enum PaymentMethod {
+  cash
+  card
+  qr
+  online
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum DiscountType {
+  percentage
+  fixed_amount
+}
+
+enum CouponApplicableTo {
+  all
+  category
+  item
+}
+
+enum LoyaltyTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum TransactionType {
+  earned
+  redeemed
+  expired
+  adjusted
+}
+
+enum RewardType {
+  free_item
+  discount_percentage
+  discount_fixed
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  seated
+  completed
+  cancelled
+  no_show
+}
+
+enum DeliveryStatus {
+  pending
+  assigned
+  picked_up
+  in_transit
+  delivered
+  failed
+}
+
+enum ModifierType {
+  size
+  addon
+  choice
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  phone         String?  @unique
+  name          String
+  passwordHash  String   @map("password_hash")
+  role          UserRole
+  locationId    String?  @map("location_id")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  location      Location?        @relation(fields: [locationId], references: [id])
+  orders        Order[]          @relation("WaiterOrders")
+  payments      Payment[]        @relation("ProcessedPayments")
+  deliveries    Delivery[]       @relation("DriverDeliveries")
+  voidLogs      VoidLog[]
+  auditLogs     AuditLog[]
+  coupons       Coupon[]
+  reservations  Reservation[]
+
+  @@index([email])
+  @@index([role])
+  @@index([locationId])
+  @@map("users")
+}
+
+model Location {
+  id         String   @id @default(uuid())
+  name       String
+  address    String
+  city       String
+  state      String?
+  country    String
+  postalCode String?  @map("postal_code")
+  phone      String
+  email      String?
+  timezone   String   @default("UTC")
+  isActive   Boolean  @default(true) @map("is_active")
+  config   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+  tables       Table[]
+  categories   Category[]
+  menuItems    MenuItem[]
+  orders       Order[]
+  reservations Reservation[]
+  coupons      Coupon[]
+  settings     Setting[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("locations")
+}
+
+model Table {
+  id             String      @id @default(uuid())
+  locationId     String      @map("location_id")
+  tableNumber    String      @map("table_number")
+  capacity       Int
+  status         TableStatus @default(available)
+  currentOrderId String?     @unique @map("current_order_id")
+  section        String?
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  location     Location      @relation(fields: [locationId], references: [id])
+  orders       Order[]
+  reservations Reservation[]
+
+  @@unique([locationId, tableNumber])
+  @@index([locationId])
+  @@index([status])
+  @@map("tables")
+}
+
+model Category {
+  id           String   @id @default(uuid())
+  locationId   String?  @map("location_id")
+  name         String
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  imageUrl     String?  @map("image_url")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  location  Location?  @relation(fields: [locationId], references: [id])
+  menuItems MenuItem[]
+
+  @@index([locationId])
+  @@index([displayOrder])
+  @@map("categories")
+}
+
+model MenuItem {
+  id               String   @id @default(uuid())
+  categoryId       String   @map("category_id")
+  locationId       String?  @map("location_id")
+  name             String
+  description      String?
+  price            Decimal  @db.Decimal(10, 2)
+  cost             Decimal? @db.Decimal(10, 2)
+  imageUrl         String?  @map("image_url")
+  isAvailable      Boolean  @default(true) @map("is_available")
+  isActive         Boolean  @default(true) @map("is_active")
+  prepTimeMinutes  Int?     @map("prep_time_minutes")
+  kitchenStation   String?  @map("kitchen_station")
+  allergens        String[]
+  tags             String[]
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  category      Category       @relation(fields: [categoryId], references: [id])
+  location      Location?      @relation(fields: [locationId], references: [id])
+  modifiers     Modifier[]
+  orderItems    OrderItem[]
+  loyaltyReward LoyaltyReward?
+
+  @@index([categoryId])
+  @@index([locationId])
+  @@index([isAvailable])
+  @@index([kitchenStation])
+  @@map("menu_items")
+}
+
+model Modifier {
+  id              String       @id @default(uuid())
+  menuItemId      String       @map("menu_item_id")
+  name            String
+  type            ModifierType
+  priceAdjustment Decimal      @default(0) @db.Decimal(10, 2) @map("price_adjustment")
+  isRequired      Boolean      @default(false) @map("is_required")
+  displayOrder    Int          @default(0) @map("display_order")
+  isActive        Boolean      @default(true) @map("is_active")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  menuItem           MenuItem             @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  orderItemModifiers OrderItemModifier[]
+
+  @@index([menuItemId])
+  @@map("modifiers")
+}
+
+model Order {
+  id                   String      @id @default(uuid())
+  orderNumber          String      @unique @map("order_number")
+  locationId           String      @map("location_id")
+  tableId              String?     @map("table_id")
+  customerId           String?     @map("customer_id")
+  orderType            OrderType   @map("order_type")
+  status               OrderStatus @default(pending)
+  waiterId             String?     @map("waiter_id")
+  subtotal             Decimal     @db.Decimal(10, 2)
+  taxAmount            Decimal     @default(0) @db.Decimal(10, 2) @map("tax_amount")
+  discountAmount       Decimal     @default(0) @db.Decimal(10, 2) @map("discount_amount")
+  deliveryFee          Decimal     @default(0) @db.Decimal(10, 2) @map("delivery_fee")
+  total                Decimal     @db.Decimal(10, 2)
+  customerName         String?     @map("customer_name")
+  customerPhone        String?     @map("customer_phone")
+  specialInstructions  String?     @map("special_instructions")
+  estimatedReadyTime   DateTime?   @map("estimated_ready_time")
+  confirmedAt          DateTime?   @map("confirmed_at")
+  preparingAt          DateTime?   @map("preparing_at")
+  readyAt              DateTime?   @map("ready_at")
+  servedAt             DateTime?   @map("served_at")
+  completedAt          DateTime?   @map("completed_at")
+  cancelledAt          DateTime?   @map("cancelled_at")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  location             Location              @relation(fields: [locationId], references: [id])
+  table                Table?                @relation(fields: [tableId], references: [id])
+  customer             Customer?             @relation(fields: [customerId], references: [id])
+  waiter               User?                 @relation("WaiterOrders", fields: [waiterId], references: [id])
+  items                OrderItem[]
+  payments             Payment[]
+  delivery             Delivery?
+  loyaltyTransactions  LoyaltyTransaction[]
+  voidLogs             VoidLog[]
+
+  @@index([orderNumber])
+  @@index([locationId])
+  @@index([tableId])
+  @@index([status])
+  @@index([orderType])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String          @id @default(uuid())
+  orderId             String          @map("order_id")
+  menuItemId          String          @map("menu_item_id")
+  quantity            Int
+  unitPrice           Decimal         @db.Decimal(10, 2) @map("unit_price")
+  subtotal            Decimal         @db.Decimal(10, 2)
+  specialInstructions String?         @map("special_instructions")
+  status              OrderItemStatus @default(pending)
+  voidedAt            DateTime?       @map("voided_at")
+  voidedBy            String?         @map("voided_by")
+  voidReason          String?         @map("void_reason")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  order     Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem  MenuItem             @relation(fields: [menuItemId], references: [id])
+  modifiers OrderItemModifier[]
+  voidLogs  VoidLog[]
+
+  @@index([orderId])
+  @@index([menuItemId])
+  @@index([status])
+  @@map("order_items")
+}
+
+model OrderItemModifier {
+  id              String   @id @default(uuid())
+  orderItemId     String   @map("order_item_id")
+  modifierId      String   @map("modifier_id")
+  modifierName    String   @map("modifier_name")
+  priceAdjustment Decimal  @db.Decimal(10, 2) @map("price_adjustment")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  modifier  Modifier  @relation(fields: [modifierId], references: [id])
+
+  @@index([orderItemId])
+  @@map("order_item_modifiers")
+}
+
+model Payment {
+  id                 String        @id @default(uuid())
+  orderId            String        @map("order_id")
+  paymentMethod      PaymentMethod @map("payment_method")
+  amount             Decimal       @db.Decimal(10, 2)
+  tipAmount          Decimal       @default(0) @db.Decimal(10, 2) @map("tip_amount")
+  couponId           String?       @map("coupon_id")
+  discountAmount     Decimal       @default(0) @db.Decimal(10, 2) @map("discount_amount")
+  loyaltyPointsUsed  Int           @default(0) @map("loyalty_points_used")
+  loyaltyDiscount    Decimal       @default(0) @db.Decimal(10, 2) @map("loyalty_discount")
+  status             PaymentStatus @default(pending)
+  transactionId      String?       @map("transaction_id")
+  processedBy        String?       @map("processed_by")
+  paymentDate        DateTime      @default(now()) @map("payment_date")
+  notes              String?
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  order       Order   @relation(fields: [orderId], references: [id])
+  coupon      Coupon? @relation(fields: [couponId], references: [id])
+  processedByUser User? @relation("ProcessedPayments", fields: [processedBy], references: [id])
+
+  @@index([orderId])
+  @@index([paymentMethod])
+  @@index([status])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+model Coupon {
+  id                 String              @id @default(uuid())
+  code               String              @unique
+  description        String?
+  discountType       DiscountType        @map("discount_type")
+  discountValue      Decimal             @db.Decimal(10, 2) @map("discount_value")
+  minOrderAmount     Decimal             @default(0) @db.Decimal(10, 2) @map("min_order_amount")
+  maxDiscountAmount  Decimal?            @db.Decimal(10, 2) @map("max_discount_amount")
+  validFrom          DateTime            @map("valid_from")
+  validTo            DateTime            @map("valid_to")
+  usageLimit         Int?                @map("usage_limit")
+  usageCount         Int                 @default(0) @map("usage_count")
+  perCustomerLimit   Int                 @default(1) @map("per_customer_limit")
+  applicableTo       CouponApplicableTo  @default(all) @map("applicable_to")
+  applicableIds      String[]            @map("applicable_ids")
+  locationId         String?             @map("location_id")
+  isActive           Boolean             @default(true) @map("is_active")
+  createdBy          String              @map("created_by")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  location   Location?  @relation(fields: [locationId], references: [id])
+  creator    User       @relation(fields: [createdBy], references: [id])
+  payments   Payment[]
+
+  @@index([code])
+  @@index([validFrom])
+  @@index([validTo])
+  @@index([isActive])
+  @@map("coupons")
+}
+
+model Customer {
+  id                  String   @id @default(uuid())
+  phone               String   @unique
+  name                String?
+  email               String?  @unique
+  dateOfBirth         DateTime? @map("date_of_birth") @db.Date
+  totalOrders         Int      @default(0) @map("total_orders")
+  totalSpent          Decimal  @default(0) @db.Decimal(10, 2) @map("total_spent")
+  loyaltyPoints       Int      @default(0) @map("loyalty_points")
+  loyaltyTier         LoyaltyTier @default(bronze) @map("loyalty_tier")
+  lastOrderDate       DateTime? @map("last_order_date")
+  favoriteItems       String[] @map("favorite_items")
+  dietaryPreferences  String[] @map("dietary_preferences")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  orders              Order[]
+  loyaltyTransactions LoyaltyTransaction[]
+  reservations        Reservation[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([loyaltyTier])
+  @@map("customers")
+}
+
+model LoyaltyTransaction {
+  id              String          @id @default(uuid())
+  customerId      String          @map("customer_id")
+  orderId         String?         @map("order_id")
+  transactionType TransactionType @map("transaction_type")
+  points          Int
+  balanceAfter    Int             @map("balance_after")
+  description     String?
+  expiresAt       DateTime?       @map("expires_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  order    Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([customerId])
+  @@index([transactionType])
+  @@index([createdAt])
+  @@map("loyalty_transactions")
+}
+
+model LoyaltyReward {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  pointsRequired Int          @map("points_required")
+  rewardType     RewardType   @map("reward_type")
+  rewardValue    Decimal?     @db.Decimal(10, 2) @map("reward_value")
+  menuItemId     String?      @unique @map("menu_item_id")
+  tierRequired   LoyaltyTier? @map("tier_required")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id])
+
+  @@index([pointsRequired])
+  @@index([isActive])
+  @@map("loyalty_rewards")
+}
+
+model Reservation {
+  id                  String            @id @default(uuid())
+  locationId          String            @map("location_id")
+  customerId          String?           @map("customer_id")
+  tableId             String?           @map("table_id")
+  customerName        String            @map("customer_name")
+  customerPhone       String            @map("customer_phone")
+  customerEmail       String?           @map("customer_email")
+  reservationDate     DateTime          @db.Date @map("reservation_date")
+  reservationTime     DateTime          @db.Time @map("reservation_time")
+  partySize           Int               @map("party_size")
+  durationMinutes     Int               @default(90) @map("duration_minutes")
+  status              ReservationStatus @default(pending)
+  specialRequests     String?           @map("special_requests")
+  assignedTableAt     DateTime?         @map("assigned_table_at")
+  checkedInAt         DateTime?         @map("checked_in_at")
+  completedAt         DateTime?         @map("completed_at")
+  cancelledAt         DateTime?         @map("cancelled_at")
+  cancellationReason  String?           @map("cancellation_reason")
+  reminderSent        Boolean           @default(false) @map("reminder_sent")
+  createdBy           String?           @map("created_by")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  location  Location  @relation(fields: [locationId], references: [id])
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  table     Table?    @relation(fields: [tableId], references: [id])
+  creator   User?     @relation(fields: [createdBy], references: [id])
+
+  @@index([locationId])
+  @@index([reservationDate])
+  @@index([status])
+  @@map("reservations")
+}
+
+model Delivery {
+  id                     String         @id @default(uuid())
+  orderId                String         @unique @map("order_id")
+  driverId               String?        @map("driver_id")
+  deliveryAddress        String         @map("delivery_address")
+  deliveryLatitude       Decimal?       @db.Decimal(10, 8) @map("delivery_latitude")
+  deliveryLongitude      Decimal?       @db.Decimal(11, 8) @map("delivery_longitude")
+  deliveryInstructions   String?        @map("delivery_instructions")
+  deliveryFee            Decimal        @db.Decimal(10, 2) @map("delivery_fee")
+  distanceKm             Decimal?       @db.Decimal(6, 2) @map("distance_km")
+  estimatedDeliveryTime  DateTime?      @map("estimated_delivery_time")
+  assignedAt             DateTime?      @map("assigned_at")
+  pickedUpAt             DateTime?      @map("picked_up_at")
+  deliveredAt            DateTime?      @map("delivered_at")
+  status                 DeliveryStatus @default(pending)
+  failedReason           String?        @map("failed_reason")
+  customerSignature      String?        @map("customer_signature")
+  deliveryPhoto          String?        @map("delivery_photo")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  order  Order @relation(fields: [orderId], references: [id])
+  driver User? @relation("DriverDeliveries", fields: [driverId], references: [id])
+
+  @@index([orderId])
+  @@index([driverId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+model VoidLog {
+  id           String   @id @default(uuid())
+  orderId      String   @map("order_id")
+  orderItemId  String?  @map("order_item_id")
+  voidedBy     String   @map("voided_by")
+  voidReason   String   @map("void_reason")
+  itemName     String   @map("item_name")
+  quantity     Int
+  amountVoided Decimal  @db.Decimal(10, 2) @map("amount_voided")
+  voidedAt     DateTime @default(now()) @map("voided_at")
+
+  order     Order      @relation(fields: [orderId], references: [id])
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id])
+  voidedByUser User    @relation(fields: [voidedBy], references: [id])
+
+  @@index([orderId])
+  @@index([voidedBy])
+  @@index([voidedAt])
+  @@map("void_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Setting {
+  id          String   @id @default(uuid())
+  locationId  String?  @map("location_id")
+  key         String
+  value       Json
+  description String?
+  category    String?
+  updatedBy   String?  @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  location Location? @relation(fields: [locationId], references: [id])
+
+  @@unique([locationId, key])
+  @@index([key])
+  @@index([category])
+  @@map("settings")
+}

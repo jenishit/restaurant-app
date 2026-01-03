@@ -1,0 +1,114 @@
+services:
+    #PostgreSQL Database
+    postgres:
+        image: postgres:16-alpine
+        container_name: restaurant_db
+        environment:
+            POSTGRES_USER: aagoaroma
+            POSTGRES_PASSWORD: 2026_AagoAroma
+            POSTGRES_DB: restaurant_db
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U restaurant_user -d restaurant_db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
+        networks:
+            - restaurant_network
+
+    
+    #Redis for caching
+    redis:
+        image: redis:7-alpine
+        container_name: restaurant_redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        command: redis-server --appendonly yes
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+        networks:
+            - restaurant_network
+    
+    #Backend API
+    backend:
+       build: ./backend
+       container_name: restaurant_backend
+       environment:
+           DATABASE_URL: postgresql://aagoaroma:2026_AagoAroma@postgres:5432/restaurant_db
+           REDIS_URL: redis://redis:6379
+           JWT_SECRET: your_super_secret_jwt_key_change_in_production
+           JWT_EXPIRES_IN: 24h
+           REFRESH_TOKEN_SECRET: your_super_secret_refresh_token_key
+           REFRESH_TOKEN_EXPIRES_IN: 7d
+           CORS_ORIGIN: http://localhost:5173
+       ports:
+           - "3000:3000"
+       volumes:
+           - ./backend:/app
+           - /app/node_modules
+           - ./uploads:/app/uploads
+       depends_on:
+           postgres:
+               condition: service_healthy
+           redis:
+               condition: service_healthy
+       command: npm run dev
+       restart: unless-stopped
+       networks:
+       - restaurant_network
+        
+# Frontend (React + Vite)
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        container_name: restaurant_frontend
+        environment:
+            VITE_API_URL: http://localhost:3000/api/v1
+            VITE_WS_URL: ws://localhost:3000
+        ports:
+            - "5173:5173"
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        command: npm run dev
+        restart: unless-stopped
+        networks:
+            - restaurant_network
+
+  # Nginx (Load Balancer / Reverse Proxy)
+    nginx:
+        image: nginx:alpine
+        container_name: restaurant_nginx
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+            - ./nginx/ssl:/etc/nginx/ssl
+        depends_on:
+            - backend
+            - frontend
+        restart: unless-stopped
+        networks:
+            - restaurant_network
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  restaurant_network:
+    driver: bridge
