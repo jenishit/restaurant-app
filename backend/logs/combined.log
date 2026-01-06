@@ -129,3 +129,43 @@
 {"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:07:23.836Z"}
 {"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:07:23.837Z"}
 {"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:07:23.843Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:15:46.698Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:15:46.702Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:15:46.702Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:15:46.703Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:15:46.708Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:16:55.273Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:16:55.283Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:16:55.284Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:16:55.285Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:16:55.307Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:16:59.739Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:16:59.747Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:16:59.748Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:16:59.749Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:16:59.764Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:17:06.504Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:17:06.511Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:17:06.511Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:17:06.512Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:17:06.519Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:17:18.420Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:17:18.426Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:17:18.426Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:17:18.427Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:17:18.435Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:17:30.310Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:17:30.314Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:17:30.315Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:17:30.316Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:17:30.324Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:18:41.625Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:18:41.629Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:18:41.630Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:18:41.630Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:18:41.638Z"}
+{"level":"info","message":"🚀 Server running on port 3000 in development mode","timestamp":"2026-01-03T12:18:53.319Z"}
+{"level":"info","message":"📡 WebSocket server ready","timestamp":"2026-01-03T12:18:53.326Z"}
+{"level":"info","message":"🔗 API: http://localhost:3000/api/v1","timestamp":"2026-01-03T12:18:53.326Z"}
+{"level":"info","message":"💚 Health: http://localhost:3000/health","timestamp":"2026-01-03T12:18:53.327Z"}
+{"level":"info","message":"Redis connected","timestamp":"2026-01-03T12:18:53.340Z"}
